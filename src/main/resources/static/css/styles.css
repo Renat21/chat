@@ -54,7 +54,6 @@ body,html {
 .msg_container_send {
     margin-top: auto;
     margin-bottom: auto;
-    margin-right: 10px;
     border-radius: 25px;
     padding: 10px;
     position: relative;
@@ -111,6 +110,6 @@ button {
   text-align: center;
   font-size: 1.5em;
   vertical-align: middle;
-  margin:3px;
+  margin-top:3px;
   border:1.5px solid #f5f6fa;
 }

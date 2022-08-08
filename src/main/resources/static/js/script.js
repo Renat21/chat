@@ -3,8 +3,65 @@
 let stompClient
 let username
 
+$(function () {
+    for (let i = 0; i < allMessages.length; i++)
+        createMessageLine(allMessages[i]);
+})
+
+
+function createMessageLine(message){
+    const chatCard = document.createElement('div')
+    chatCard.className = 'card-body'
+
+    const flexBox = document.createElement('div')
+
+
+
+    const messageElement = document.createElement('div')
+    messageElement.className = 'msg_container_send'
+
+
+    messageElement.classList.add('chat-message')
+
+    const avatarContainer = document.createElement('div')
+    avatarContainer.className = 'img_cont_msg'
+    const avatarElement = document.createElement('div')
+    avatarElement.className = 'circle user_img_msg'
+    const avatarText = document.createTextNode(message.userFrom["username"][0])
+    avatarElement.appendChild(avatarText);
+    avatarElement.style['background-color'] = getAvatarColor(message.userFrom["username"][0])
+    avatarContainer.appendChild(avatarElement)
+
+    messageElement.style['background-color'] = getAvatarColor(message.userFrom["username"][0])
+
+    flexBox.appendChild(avatarContainer)
+
+    if (message["userFrom"].id === userFrom.id) {
+        flexBox.className = 'd-flex justify-content-end mb-4'
+        messageElement.classList.add("mr-2")
+        flexBox.appendChild(messageElement)
+        flexBox.appendChild(avatarContainer)
+    }
+    else {
+        flexBox.className = 'd-flex justify-content-start mb-4'
+        messageElement.classList.add("ml-2");
+        flexBox.appendChild(avatarContainer)
+        flexBox.appendChild(messageElement)
+    }
+
+    chatCard.appendChild(flexBox)
+
+
+    messageElement.innerHTML = message.content
+
+    const chat = document.querySelector('#chat')
+    chat.appendChild(flexBox)
+    chat.scrollTop = chat.scrollHeight
+}
+
+
 const connect = (event) => {
-    username = document.querySelector('#username').value.trim()
+    username = userFrom["username"];
 
     if (username) {
         const login = document.querySelector('#login')
@@ -21,11 +78,14 @@ const connect = (event) => {
 }
 
 const onConnected = () => {
-    stompClient.subscribe('/topic/public', onMessageReceived)
-    stompClient.send("/app/chat.newUser",
-        {},
-        JSON.stringify({sender: username, type: 'CONNECT'})
-    )
+    if (userFrom["id"] < userTo["id"])
+        stompClient.subscribe('/topic/' + userFrom["id"] + "/" + userTo["id"], onMessageReceived)
+    else
+        stompClient.subscribe('/topic/' + userTo["id"] + "/" + userFrom["id"], onMessageReceived)
+    //stompClient.send("/app/chat.newUser",
+    //    {},
+    //    JSON.stringify({sender: username})
+    //)
     const status = document.querySelector('#status')
     status.className = 'hide'
 }
@@ -42,12 +102,15 @@ const sendMessage = (event) => {
 
     if (messageContent && stompClient) {
         const chatMessage = {
-            sender: username,
+            userFrom: userFrom,
+            userTo: userTo,
             content: messageInput.value,
-            type: 'CHAT',
-            time: moment().calendar()
+            time: new Date()
         }
-        stompClient.send("/app/chat.send", {}, JSON.stringify(chatMessage))
+        if (userFrom["id"] < userTo["id"])
+            stompClient.send("/app/chat.send/" + userFrom["id"] + "/" + userTo["id"], {}, JSON.stringify(chatMessage))
+        else
+            stompClient.send("/app/chat.send/" + userTo["id"] + "/" + userFrom["id"], {}, JSON.stringify(chatMessage))
         messageInput.value = ''
     }
     event.preventDefault();
@@ -56,59 +119,13 @@ const sendMessage = (event) => {
 
 const onMessageReceived = (payload) => {
     const message = JSON.parse(payload.body);
-
-    const chatCard = document.createElement('div')
-    chatCard.className = 'card-body'
-
-    const flexBox = document.createElement('div')
-    flexBox.className = 'd-flex justify-content-end mb-4'
-    chatCard.appendChild(flexBox)
-
-    const messageElement = document.createElement('div')
-    messageElement.className = 'msg_container_send'
-
-    flexBox.appendChild(messageElement)
-
-    if (message.type === 'CONNECT') {
-        messageElement.classList.add('event-message')
-        message.content = message.sender + ' connected!'
-    } else if (message.type === 'DISCONNECT') {
-        messageElement.classList.add('event-message')
-        message.content = message.sender + ' left!'
-    } else {
-        messageElement.classList.add('chat-message')
-
-        const avatarContainer = document.createElement('div')
-        avatarContainer.className = 'img_cont_msg'
-        const avatarElement = document.createElement('div')
-        avatarElement.className = 'circle user_img_msg'
-        const avatarText = document.createTextNode(message.sender[0])
-        avatarElement.appendChild(avatarText);
-        avatarElement.style['background-color'] = getAvatarColor(message.sender)
-        avatarContainer.appendChild(avatarElement)
-
-        messageElement.style['background-color'] = getAvatarColor(message.sender)
-
-        flexBox.appendChild(avatarContainer)
-
-        const time = document.createElement('span')
-        time.className = 'msg_time_send'
-        time.innerHTML = message.time
-        messageElement.appendChild(time)
-
-    }
-
-    messageElement.innerHTML = message.content
-
-    const chat = document.querySelector('#chat')
-    chat.appendChild(flexBox)
-    chat.scrollTop = chat.scrollHeight
+    createMessageLine(message);
 }
 
 const hashCode = (str) => {
     let hash = 0
     for (let i = 0; i < str.length; i++) {
-       hash = str.charCodeAt(i) + ((hash << 5) - hash)
+        hash = str.charCodeAt(i) + ((hash << 5) - hash)
     }
     return hash
 }

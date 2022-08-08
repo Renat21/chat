@@ -1,14 +1,32 @@
 package com.example.demo.model;
 
 
-import lombok.Builder;
-import lombok.Getter;
+import lombok.*;
+
+import javax.persistence.*;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Builder
+@Entity
+@Table
 @Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 public class ChatMessage {
-    private MessageType type;
+    @Id
+    @Column(name = "id", nullable = false)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE)
+    private Long id;
+
+    @OneToOne(targetEntity = User.class, fetch = FetchType.EAGER)
+    private User userFrom;
+
+    @OneToOne(targetEntity = User.class, fetch = FetchType.EAGER)
+    private User userTo;
+
     private String content;
-    private String sender;
-    private String time;
+
+    private LocalDateTime time;
 }
